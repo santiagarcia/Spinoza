@@ -1,0 +1,28 @@
+[package]
+name = "spinoza-studio"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "spinoza-studio"
+path = "src/main.rs"
+
+[dependencies]
+spinoza-core = { path = "../spinoza-core" }
+spinoza-devtools = { path = "../spinoza-devtools" }
+spinoza-pack-meshio = { path = "../spinoza-pack-meshio" }
+eframe = "0.29"
+egui = "0.29"
+bytemuck = { version = "1", features = ["derive"] }
+env_logger = "0.11"
+log = "0.4"
+tobj = "4"
+stl_io = "0.8"
+rfd = "0.15"
+truck-stepio = "0.3.0"
+truck-meshalgo = "0.4.0"
+truck-polymesh = "0.6.0"
+truck-topology = "0.6.0"
+serde = { version = "1.0.228", features = ["derive"] }
+toml = "1.0.3"
+rayon = "1.10"
