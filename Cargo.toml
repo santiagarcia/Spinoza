@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/spinoza-core",
+    "crates/spinoza-disc",
+    "crates/spinoza-solve",
+    "crates/spinoza-kernels",
+    "crates/spinoza-app",
+    "crates/spinoza-devtools",
+    "crates/spinoza-pack-poisson",
+    "crates/spinoza-pack-block2x2",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"

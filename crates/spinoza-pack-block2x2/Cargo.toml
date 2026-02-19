@@ -1,0 +1,13 @@
+[package]
+name = "spinoza-pack-block2x2"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+spinoza-core = { path = "../spinoza-core" }
+spinoza-disc = { path = "../spinoza-disc" }
+spinoza-solve = { path = "../spinoza-solve" }
+spinoza-pack-poisson = { path = "../spinoza-pack-poisson" }
+
+[dev-dependencies]
+toml = "0.8"

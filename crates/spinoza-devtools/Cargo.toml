@@ -1,0 +1,31 @@
+[package]
+name = "spinoza-devtools"
+version.workspace = true
+edition.workspace = true
+default-run = "spinoza-devtools"
+
+[[bin]]
+name = "spinoza-devtools"
+path = "src/main.rs"
+
+[[bin]]
+name = "spinoza-op-bench"
+path = "src/bin/operator_bench.rs"
+
+[dependencies]
+spinoza-core = { path = "../spinoza-core" }
+spinoza-disc = { path = "../spinoza-disc" }
+spinoza-solve = { path = "../spinoza-solve" }
+# Depend on method packs so inventory discovers them at link time.
+spinoza-pack-poisson = { path = "../spinoza-pack-poisson" }
+spinoza-pack-block2x2 = { path = "../spinoza-pack-block2x2" }
+clap = { version = "4", default-features = false, features = ["derive", "std"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+[dev-dependencies]
+spinoza-core = { path = "../spinoza-core" }
+spinoza-disc = { path = "../spinoza-disc" }
+spinoza-solve = { path = "../spinoza-solve" }
+serde_json = "1"

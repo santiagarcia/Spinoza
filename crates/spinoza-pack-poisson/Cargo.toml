@@ -1,0 +1,9 @@
+[package]
+name = "spinoza-pack-poisson"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+spinoza-core = { path = "../spinoza-core" }
+spinoza-disc = { path = "../spinoza-disc" }
+spinoza-solve = { path = "../spinoza-solve" }

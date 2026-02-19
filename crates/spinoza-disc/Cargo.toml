@@ -1,0 +1,7 @@
+[package]
+name = "spinoza-disc"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+spinoza-core = { path = "../spinoza-core" }

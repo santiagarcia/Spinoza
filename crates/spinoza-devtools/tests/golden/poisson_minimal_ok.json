@@ -1,0 +1,16 @@
+{
+  "problem_name": "Poisson 2D minimal",
+  "case_path": "spec/poisson_minimal_ok.toml",
+  "required_capabilities": [
+    "BC_Dirichlet",
+    "Operator_Laplacian",
+    "Precond_Jacobi",
+    "Solver_CG",
+    "Space_H1Scalar"
+  ],
+  "missing_capabilities": [
+  ],
+  "status": "ok",
+  "exit_code": 0,
+  "validation_errors": []
+}

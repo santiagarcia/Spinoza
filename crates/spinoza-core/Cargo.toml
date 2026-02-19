@@ -1,0 +1,12 @@
+[package]
+name = "spinoza-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+inventory = "0.3"
+serde = { version = "1", features = ["derive"] }
+thiserror = "1"
+
+[dev-dependencies]
+toml = "0.8"

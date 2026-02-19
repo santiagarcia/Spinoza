@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies and build outputs
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Run clippy with warnings denied
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run workspace tests
+        run: cargo test --workspace
+
+      - name: Audit valid schema spec expects exit code 0
+        run: |
+          set +e
+          cargo run -p spinoza-devtools -- audit spec/poisson_minimal_ok.toml
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo "Expected exit code 0, got $status"
+            exit 1
+          fi
+
+      - name: Audit invalid schema spec expects exit code 2
+        run: |
+          set +e
+          cargo run -p spinoza-devtools -- audit spec/poisson_invalid.toml
+          status=$?
+          set -e
+          if [ "$status" -ne 2 ]; then
+            echo "Expected exit code 2, got $status"
+            exit 1
+          fi

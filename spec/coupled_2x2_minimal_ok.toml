@@ -1,0 +1,43 @@
+# Minimal 2D coupled elliptic 2×2 system.
+#
+#   -∇²u + α v = f
+#   -∇²v + β u = g
+#
+# with homogeneous Dirichlet BCs for both fields.
+
+[problem]
+name = "Coupled elliptic 2x2 minimal"
+
+[mesh]
+dimension = 2
+
+[[fields]]
+name = "u"
+kind = "scalar"
+space = "H1"
+complex = false
+
+[[fields]]
+name = "v"
+kind = "scalar"
+space = "H1"
+complex = false
+
+[equation]
+type = "coupled_elliptic_2x2"
+alpha = 0.1
+beta = 0.1
+
+[[bcs]]
+type = "dirichlet"
+field = "u"
+value = 0.0
+
+[[bcs]]
+type = "dirichlet"
+field = "v"
+value = 0.0
+
+[solver]
+linear = "block_pcg"
+precond = "block_jacobi"

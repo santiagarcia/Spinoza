@@ -1,0 +1,29 @@
+# Invalid case spec: contains schema violations.
+#
+# 1. mesh.dimension is 5 (must be 2 or 3)
+# 2. equation.type is "navier_stokes" (only "poisson" is allowed)
+# 3. solver.linear is "gmres" (only "cg" is allowed)
+
+[problem]
+name = "Invalid case"
+
+[mesh]
+dimension = 5
+
+[[fields]]
+name = "v"
+kind = "scalar"
+space = "H1"
+complex = false
+
+[equation]
+type = "navier_stokes"
+
+[[bcs]]
+type = "dirichlet"
+field = "v"
+value = 1.0
+
+[solver]
+linear = "gmres"
+precond = "jacobi"

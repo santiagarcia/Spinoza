@@ -1,0 +1,27 @@
+# Minimal Poisson problem case spec.
+#
+# This spec is schema valid and should pass capability audit.
+
+[problem]
+name = "Poisson 2D minimal"
+
+[mesh]
+dimension = 2
+
+[[fields]]
+name = "u"
+kind = "scalar"
+space = "H1"
+complex = false
+
+[equation]
+type = "poisson"
+
+[[bcs]]
+type = "dirichlet"
+field = "u"
+value = 0.0
+
+[solver]
+linear = "cg"
+precond = "jacobi"

@@ -1,0 +1,11 @@
+{
+  "problem_name": "",
+  "case_path": "spec/poisson_invalid.toml",
+  "required_capabilities": [],
+  "missing_capabilities": [],
+  "status": "validation_error",
+  "exit_code": 2,
+  "validation_errors": [
+    "validation error: mesh.dimension must be 2 or 3, got 5"
+  ]
+}
