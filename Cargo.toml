@@ -9,6 +9,8 @@ members = [
     "crates/spinoza-devtools",
     "crates/spinoza-pack-poisson",
     "crates/spinoza-pack-block2x2",
+    "crates/spinoza-pack-elasticity",
+    "crates/spinoza-pack-linear-solvers",
 ]
 
 [workspace.package]

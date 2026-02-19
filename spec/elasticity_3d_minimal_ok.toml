@@ -1,0 +1,27 @@
+# Minimal 3D linear elasticity case spec.
+
+[problem]
+name = "Elasticity 3D minimal"
+
+[mesh]
+dimension = 3
+
+[[fields]]
+name = "displacement"
+kind = "vector"
+space = "H1"
+complex = false
+
+[equation]
+type = "elasticity"
+young_modulus = 210000.0
+poisson_ratio = 0.3
+
+[[bcs]]
+type = "dirichlet"
+field = "displacement"
+value = 0.0
+
+[solver]
+linear = "cg"
+precond = "jacobi"

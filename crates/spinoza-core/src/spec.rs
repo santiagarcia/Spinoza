@@ -70,6 +70,10 @@ pub struct EquationSpec {
     pub alpha: Option<f64>,
     /// Optional coupling parameter beta for coupled systems.
     pub beta: Option<f64>,
+    /// Young's modulus for elasticity.
+    pub young_modulus: Option<f64>,
+    /// Poisson's ratio for elasticity.
+    pub poisson_ratio: Option<f64>,
 }
 
 /// A single boundary condition entry.
@@ -107,7 +111,7 @@ impl CaseSpec {
         }
 
         // Equation type allow list.
-        let allowed_equations = ["poisson", "coupled_elliptic_2x2"];
+        let allowed_equations = ["poisson", "coupled_elliptic_2x2", "elasticity"];
         if !allowed_equations.contains(&self.equation.eq_type.as_str()) {
             return Err(SpinozaError::ValidationError(format!(
                 "equation.type '{}' is not supported (allowed: {})",
@@ -127,7 +131,7 @@ impl CaseSpec {
         }
 
         // Solver allow list.
-        let allowed_solvers = ["cg", "block_pcg"];
+        let allowed_solvers = ["cg", "block_pcg", "gmres"];
         if !allowed_solvers.contains(&self.solver.linear.as_str()) {
             return Err(SpinozaError::ValidationError(format!(
                 "solver.linear '{}' is not supported (allowed: {})",
@@ -209,6 +213,9 @@ impl CompiledPlan {
             required.insert(Capability::EquationCoupledElliptic2x2);
             required.insert(Capability::BlockOperator2x2);
         }
+        if spec.equation.eq_type.as_str() == "elasticity" {
+            required.insert(Capability::OperatorElasticity);
+        }
 
         // Derive BC capabilities.
         for bc in &spec.bcs {
@@ -224,6 +231,9 @@ impl CompiledPlan {
         if spec.solver.linear == "block_pcg" {
             required.insert(Capability::SolverBlockPCG);
         }
+        if spec.solver.linear == "gmres" {
+            required.insert(Capability::SolverGMRES);
+        }
         if spec.solver.precond == "jacobi" {
             required.insert(Capability::PrecondJacobi);
         }
@@ -238,6 +248,46 @@ impl CompiledPlan {
             problem_name: spec.problem.name.clone(),
             required,
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Key inference helpers
+// ---------------------------------------------------------------------------
+
+/// Infer the space signature from the fields list.
+///
+/// Returns e.g. \"H1Scalar\", \"H1Vector\". For multi-field specs that mix
+/// space types, returns the space of the first field.
+pub fn infer_space_signature(fields: &[FieldSpec]) -> String {
+    if let Some(field) = fields.first() {
+        match (field.space, field.kind) {
+            (Space::H1, FieldKind::Scalar) => "H1Scalar".to_string(),
+            (Space::H1, FieldKind::Vector) => "H1Vector".to_string(),
+        }
+    } else {
+        "H1Scalar".to_string()
+    }
+}
+
+/// Infer element family from the mesh dimension.
+///
+/// Returns \"quad\" for 2D, \"hex\" for 3D.
+pub fn infer_element_family(dimension: u8) -> String {
+    match dimension {
+        2 => "quad".to_string(),
+        3 => "hex".to_string(),
+        _ => "quad".to_string(),
+    }
+}
+
+/// Infer block structure from the equation type.
+///
+/// Returns \"single_field\" for most equations, \"block2x2\" for coupled systems.
+pub fn infer_block_structure(equation_type: &str) -> String {
+    match equation_type {
+        "coupled_elliptic_2x2" => "block2x2".to_string(),
+        _ => "single_field".to_string(),
     }
 }
 

@@ -318,6 +318,39 @@ pub fn verify_pack(pack_name: &str) -> ConformanceReport {
         });
     }
 
+    // 12. Physics packs must not register single_field solver factories.
+    //     Only dedicated solver packs should own generic solver registrations.
+    //     Block-specific solvers (block_structure != "single_field") are allowed.
+    {
+        let is_physics_pack = !["linear_solvers"].contains(&pack_name);
+        if is_physics_pack {
+            let single_field_solvers: Vec<String> = pack_slvs
+                .iter()
+                .filter(|info| {
+                    info.get("keys")
+                        .map(|k| k.contains("single_field"))
+                        .unwrap_or(false)
+                })
+                .filter_map(|info| info.get("name").cloned())
+                .collect();
+            let ok = single_field_solvers.is_empty();
+            checks.push(CheckResult {
+                name: "no_single_field_solver_in_physics_pack",
+                passed: ok,
+                detail: if ok {
+                    "physics pack correctly delegates single_field solvers to solver packs"
+                        .to_string()
+                } else {
+                    format!(
+                        "physics pack registers single_field solver factories \
+                         (move to a solver pack): {}",
+                        single_field_solvers.join(", ")
+                    )
+                },
+            });
+        }
+    }
+
     ConformanceReport {
         pack_name: pack_name.to_string(),
         checks,

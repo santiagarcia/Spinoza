@@ -1,0 +1,27 @@
+# Minimal 2D linear elasticity case spec (plane strain).
+
+[problem]
+name = "Elasticity 2D minimal"
+
+[mesh]
+dimension = 2
+
+[[fields]]
+name = "displacement"
+kind = "vector"
+space = "H1"
+complex = false
+
+[equation]
+type = "elasticity"
+young_modulus = 1.0
+poisson_ratio = 0.3
+
+[[bcs]]
+type = "dirichlet"
+field = "displacement"
+value = 0.0
+
+[solver]
+linear = "cg"
+precond = "jacobi"

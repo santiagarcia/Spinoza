@@ -190,3 +190,182 @@ fn axpy(alpha: f64, x: &[f64], y: &mut [f64]) {
         *yi += alpha * xi;
     }
 }
+
+/// Solve a linear system using restarted GMRES.
+///
+/// Suitable for non-symmetric and indefinite systems. Falls back gracefully
+/// for SPD systems where CG would be preferred.
+pub fn solve_gmres(
+    operator: &dyn LinearOperator,
+    rhs: &[f64],
+    tol: f64,
+    max_iter: usize,
+    restart: usize,
+    preconditioner: Option<&dyn Preconditioner>,
+) -> Result<LinearSolveResult, String> {
+    if rhs.len() != operator.size() {
+        return Err("rhs length does not match operator size".to_string());
+    }
+
+    let n = rhs.len();
+    let m = restart.min(n).max(1);
+    let mut x = vec![0.0; n];
+    let mut total_iters = 0;
+    let mut ax = vec![0.0; n];
+    let mut z = vec![0.0; n];
+
+    for _cycle in 0..(max_iter / m + 1) {
+        // Compute residual r = b - A*x
+        operator.apply(&x, &mut ax);
+        let mut r: Vec<f64> = rhs.iter().zip(ax.iter()).map(|(b, a)| b - a).collect();
+
+        let r_norm = norm2(&r);
+        if r_norm <= tol {
+            return Ok(LinearSolveResult {
+                solution: x,
+                residual_norm: r_norm,
+                iterations: total_iters,
+            });
+        }
+
+        // Arnoldi basis vectors V[0..m], Hessenberg matrix H[(m+1) x m]
+        let mut v_basis: Vec<Vec<f64>> = Vec::with_capacity(m + 1);
+        let scale = 1.0 / r_norm;
+        let v0: Vec<f64> = r.iter().map(|&ri| ri * scale).collect();
+        v_basis.push(v0);
+
+        // g = r_norm * e_1
+        let mut g = vec![0.0; m + 1];
+        g[0] = r_norm;
+
+        // Givens rotation coefficients
+        let mut cs = vec![0.0; m];
+        let mut sn = vec![0.0; m];
+
+        // Upper Hessenberg matrix stored column-major: h[j] has entries 0..j+2
+        let mut h: Vec<Vec<f64>> = Vec::with_capacity(m);
+
+        let mut k = 0;
+        while k < m && total_iters < max_iter {
+            total_iters += 1;
+
+            // w = A * M^{-1} * v_k  (right preconditioned)
+            if let Some(pc) = preconditioner {
+                pc.apply(&v_basis[k], &mut z);
+                operator.apply(&z, &mut r);
+            } else {
+                operator.apply(&v_basis[k], &mut r);
+            }
+
+            // Modified Gram-Schmidt
+            let mut hcol = vec![0.0; k + 2];
+            for i in 0..=k {
+                let d = dot(&r, &v_basis[i]);
+                hcol[i] = d;
+                for (rj, vj) in r.iter_mut().zip(v_basis[i].iter()) {
+                    *rj -= d * vj;
+                }
+            }
+            let w_norm = norm2(&r);
+            hcol[k + 1] = w_norm;
+
+            // Apply previous Givens rotations to hcol
+            for i in 0..k {
+                let temp = cs[i] * hcol[i] + sn[i] * hcol[i + 1];
+                hcol[i + 1] = -sn[i] * hcol[i] + cs[i] * hcol[i + 1];
+                hcol[i] = temp;
+            }
+
+            // Compute new Givens rotation
+            let a_val = hcol[k];
+            let b_val = hcol[k + 1];
+            let r_val = (a_val * a_val + b_val * b_val).sqrt();
+            if r_val > 1e-40 {
+                cs[k] = a_val / r_val;
+                sn[k] = b_val / r_val;
+            } else {
+                cs[k] = 1.0;
+                sn[k] = 0.0;
+            }
+            hcol[k] = cs[k] * a_val + sn[k] * b_val;
+            hcol[k + 1] = 0.0;
+
+            // Apply rotation to g
+            let temp = cs[k] * g[k] + sn[k] * g[k + 1];
+            g[k + 1] = -sn[k] * g[k] + cs[k] * g[k + 1];
+            g[k] = temp;
+
+            h.push(hcol);
+
+            let res_est = g[k + 1].abs();
+            if res_est <= tol {
+                k += 1;
+                break;
+            }
+
+            // New basis vector
+            if w_norm > 1e-40 {
+                let scale = 1.0 / w_norm;
+                let vk1: Vec<f64> = r.iter().map(|&ri| ri * scale).collect();
+                v_basis.push(vk1);
+            } else {
+                k += 1;
+                break;
+            }
+
+            k += 1;
+        }
+
+        // Back substitution to solve H * y = g
+        let mut y = vec![0.0; k];
+        for i in (0..k).rev() {
+            let mut sum = g[i];
+            for j in (i + 1)..k {
+                sum -= h[j][i] * y[j];
+            }
+            if h[i][i].abs() > 1e-40 {
+                y[i] = sum / h[i][i];
+            }
+        }
+
+        // Update x: x += M^{-1} * V * y
+        for (j, yj) in y.iter().enumerate() {
+            if let Some(pc) = preconditioner {
+                pc.apply(&v_basis[j], &mut z);
+                axpy(*yj, &z, &mut x);
+            } else {
+                axpy(*yj, &v_basis[j], &mut x);
+            }
+        }
+
+        // Check convergence
+        operator.apply(&x, &mut ax);
+        let res: f64 = rhs
+            .iter()
+            .zip(ax.iter())
+            .map(|(b, a)| (b - a) * (b - a))
+            .sum::<f64>()
+            .sqrt();
+        if res <= tol || total_iters >= max_iter {
+            return Ok(LinearSolveResult {
+                solution: x,
+                residual_norm: res,
+                iterations: total_iters,
+            });
+        }
+    }
+
+    // Final residual
+    operator.apply(&x, &mut ax);
+    let res: f64 = rhs
+        .iter()
+        .zip(ax.iter())
+        .map(|(b, a)| (b - a) * (b - a))
+        .sum::<f64>()
+        .sqrt();
+    Ok(LinearSolveResult {
+        solution: x,
+        residual_norm: res,
+        iterations: total_iters,
+    })
+}

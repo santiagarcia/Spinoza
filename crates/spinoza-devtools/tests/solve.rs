@@ -192,6 +192,15 @@ fn solve_command_writes_expected_json_shape() {
         json.get("selected_builder").and_then(Value::as_str),
         Some("PoissonBuilder")
     );
+    // Solver should now come from linear_solvers pack.
+    let selected_solver = json
+        .get("selected_solver")
+        .and_then(Value::as_str)
+        .expect("selected_solver must be a string");
+    assert!(
+        selected_solver.starts_with("linear_solvers::"),
+        "solver should come from linear_solvers pack, got: {selected_solver}"
+    );
 
     let residual = json
         .get("residual_norm")

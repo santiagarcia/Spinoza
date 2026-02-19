@@ -4,8 +4,10 @@
 //! - H1 scalar space support
 //! - Poisson operator factory (assembled and matrixfree, 2D and 3D)
 //! - Jacobi and MG preconditioner factories
-//! - CG solver factory for SPD systems
 //! - PoissonBuilder that composes the above from the registry
+//!
+//! **Note:** Solver factories (CG, GMRES) are provided by
+//! `spinoza-pack-linear-solvers`, not by physics packs.
 //!
 //! Adding this crate as a dependency is sufficient for Spinoza to discover
 //! it at link time via the inventory mechanism.
@@ -13,7 +15,7 @@
 use spinoza_core::{
     BuiltOperator, BuiltProblem, Capability, CaseSpec, ComponentLookup, LinearOperator, MethodPack,
     MethodRegistry, OperatorFactory, OperatorKey, Preconditioner, PreconditionerFactory,
-    PreconditionerKey, ProblemBuilder, SolveResult, SolverFactory, SolverKey,
+    PreconditionerKey, ProblemBuilder,
 };
 use spinoza_disc::{
     apply_constant_dirichlet_on_boundary, apply_constant_dirichlet_on_boundary_3d,
@@ -22,7 +24,7 @@ use spinoza_disc::{
     StructuredHexMesh3D, StructuredQuadMesh2D,
 };
 use spinoza_solve::{
-    solve_cg, JacobiPreconditioner, MultigridConfig, MultigridPreconditioner2D,
+    JacobiPreconditioner, MultigridConfig, MultigridPreconditioner2D,
     MultigridPreconditioner3D,
 };
 
@@ -37,7 +39,6 @@ static CAPABILITIES: &[Capability] = &[
     Capability::SpaceH1Scalar,
     Capability::OperatorLaplacian,
     Capability::BcDirichlet,
-    Capability::SolverCG,
     Capability::PrecondJacobi,
     Capability::PrecondMG,
 ];
@@ -57,7 +58,6 @@ impl MethodPack for PoissonPack {
         registry.register_operator_factory(Box::new(PoissonOperatorFactory));
         registry.register_preconditioner_factory(Box::new(JacobiPrecondFactory));
         registry.register_preconditioner_factory(Box::new(MgPrecondFactory));
-        registry.register_solver_factory(Box::new(CgSolverFactory));
     }
 }
 
@@ -80,21 +80,37 @@ impl OperatorFactory for PoissonOperatorFactory {
                 equation_family: "poisson".into(),
                 backend: "assembled".into(),
                 dimension: 2,
+                space_signature: "H1Scalar".into(),
+                element_family: "quad".into(),
+                order: 1,
+                block_structure: "single_field".into(),
             },
             OperatorKey {
                 equation_family: "poisson".into(),
                 backend: "assembled".into(),
                 dimension: 3,
+                space_signature: "H1Scalar".into(),
+                element_family: "hex".into(),
+                order: 1,
+                block_structure: "single_field".into(),
             },
             OperatorKey {
                 equation_family: "poisson".into(),
                 backend: "matrixfree".into(),
                 dimension: 2,
+                space_signature: "H1Scalar".into(),
+                element_family: "quad".into(),
+                order: 1,
+                block_structure: "single_field".into(),
             },
             OperatorKey {
                 equation_family: "poisson".into(),
                 backend: "matrixfree".into(),
                 dimension: 3,
+                space_signature: "H1Scalar".into(),
+                element_family: "hex".into(),
+                order: 1,
+                block_structure: "single_field".into(),
             },
         ]
     }
@@ -148,21 +164,41 @@ impl PreconditionerFactory for JacobiPrecondFactory {
                 precond_type: "jacobi".into(),
                 backend: "assembled".into(),
                 dimension: 2,
+                operator_family: "poisson".into(),
+                space_signature: "H1Scalar".into(),
+                element_family: "quad".into(),
+                order: 1,
+                block_structure: "single_field".into(),
             },
             PreconditionerKey {
                 precond_type: "jacobi".into(),
                 backend: "assembled".into(),
                 dimension: 3,
+                operator_family: "poisson".into(),
+                space_signature: "H1Scalar".into(),
+                element_family: "hex".into(),
+                order: 1,
+                block_structure: "single_field".into(),
             },
             PreconditionerKey {
                 precond_type: "jacobi".into(),
                 backend: "matrixfree".into(),
                 dimension: 2,
+                operator_family: "poisson".into(),
+                space_signature: "H1Scalar".into(),
+                element_family: "quad".into(),
+                order: 1,
+                block_structure: "single_field".into(),
             },
             PreconditionerKey {
                 precond_type: "jacobi".into(),
                 backend: "matrixfree".into(),
                 dimension: 3,
+                operator_family: "poisson".into(),
+                space_signature: "H1Scalar".into(),
+                element_family: "hex".into(),
+                order: 1,
+                block_structure: "single_field".into(),
             },
         ]
     }
@@ -201,11 +237,21 @@ impl PreconditionerFactory for MgPrecondFactory {
                 precond_type: "mg".into(),
                 backend: "matrixfree".into(),
                 dimension: 2,
+                operator_family: "poisson".into(),
+                space_signature: "H1Scalar".into(),
+                element_family: "quad".into(),
+                order: 1,
+                block_structure: "single_field".into(),
             },
             PreconditionerKey {
                 precond_type: "mg".into(),
                 backend: "matrixfree".into(),
                 dimension: 3,
+                operator_family: "poisson".into(),
+                space_signature: "H1Scalar".into(),
+                element_family: "hex".into(),
+                order: 1,
+                block_structure: "single_field".into(),
             },
         ]
     }
@@ -244,49 +290,6 @@ impl PreconditionerFactory for MgPrecondFactory {
 }
 
 // ---------------------------------------------------------------------------
-// Solver factory
-// ---------------------------------------------------------------------------
-
-struct CgSolverFactory;
-
-impl SolverFactory for CgSolverFactory {
-    fn name(&self) -> &str {
-        "CgSolver"
-    }
-
-    fn supported_keys(&self) -> Vec<SolverKey> {
-        vec![SolverKey {
-            solver_type: "cg".into(),
-            spd: true,
-            complex: false,
-        }]
-    }
-
-    fn capabilities_provided(&self) -> &[Capability] {
-        &[Capability::SolverCG]
-    }
-
-    fn capabilities_required(&self) -> &[Capability] {
-        &[]
-    }
-
-    fn solve(
-        &self,
-        _key: &SolverKey,
-        operator: &dyn LinearOperator,
-        rhs: &[f64],
-        preconditioner: Option<&dyn Preconditioner>,
-    ) -> Result<SolveResult, String> {
-        let result = solve_cg(operator, rhs, 1e-10, 20_000, preconditioner)?;
-        Ok(SolveResult {
-            solution: result.solution,
-            residual_norm: result.residual_norm,
-            iterations: result.iterations,
-        })
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Problem builder (composes from registry)
 // ---------------------------------------------------------------------------
 
@@ -320,12 +323,17 @@ impl ProblemBuilder for PoissonBuilder {
         registry: &MethodRegistry,
     ) -> Result<BuiltProblem, String> {
         let dim = spec.mesh.dimension;
+        let elem = if dim == 2 { "quad" } else { "hex" };
 
         // 1. Request operator from registry.
         let op_key = OperatorKey {
             equation_family: "poisson".into(),
             backend: backend.into(),
             dimension: dim,
+            space_signature: "H1Scalar".into(),
+            element_family: elem.into(),
+            order: 1,
+            block_structure: "single_field".into(),
         };
         let built_op = match registry.find_operator(&op_key) {
             ComponentLookup::Found { component, .. } => {
@@ -344,6 +352,11 @@ impl ProblemBuilder for PoissonBuilder {
             precond_type: precond_hint.into(),
             backend: backend.into(),
             dimension: dim,
+            operator_family: "poisson".into(),
+            space_signature: "H1Scalar".into(),
+            element_family: elem.into(),
+            order: 1,
+            block_structure: "single_field".into(),
         };
         let precond = match registry.find_preconditioner(&pc_key) {
             ComponentLookup::Found { component, .. } => {

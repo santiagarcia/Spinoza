@@ -18,6 +18,8 @@ The current default registry marks these capabilities as implemented.
 9. Precond_BlockJacobi
 10. Solver_BlockPCG
 11. Equation_CoupledElliptic2x2
+12. Operator_Elasticity
+13. Solver_GMRES
 
 Capabilities are registered by method packs at link time via the inventory crate.
 
@@ -88,20 +90,46 @@ via typed factory traits. Each factory declares:
 #### OperatorFactory
 
 Produces a linear operator and RHS vector for a given equation family,
-backend, and dimension. Keyed by OperatorKey (equation_family, backend,
-dimension). Returns a BuiltOperator containing the operator, rhs,
+backend, and dimension. Keyed by OperatorKey with the following fields:
+
+- equation_family: e.g. "poisson", "elasticity"
+- backend: "assembled" or "matrixfree"
+- dimension: 2 or 3
+- space_signature: e.g. "H1Scalar", "H1Vector"
+- element_family: "quad" (2D) or "hex" (3D)
+- order: polynomial order (1 for Q1)
+- block_structure: "single_field" or "block2x2"
+
+Returns a BuiltOperator containing the operator, rhs,
 field_names, and field_sizes.
 
 #### PreconditionerFactory
 
 Produces a preconditioner given the assembled operator and case spec.
-Keyed by PreconditionerKey (precond_type, backend, dimension).
+Keyed by PreconditionerKey with the following fields:
+
+- precond_type: e.g. "jacobi", "mg", "block_jacobi"
+- backend: "assembled" or "matrixfree"
+- dimension: 2 or 3
+- operator_family: e.g. "poisson", "elasticity"
+- space_signature: e.g. "H1Scalar", "H1Vector"
+- element_family: "quad" or "hex"
+- order: polynomial order
+- block_structure: "single_field" or "block2x2"
+
 Returns a boxed Preconditioner.
 
 #### SolverFactory
 
-Runs a linear or nonlinear solver. Keyed by SolverKey (solver_type,
-spd, complex). Returns a SolveResult containing solution, residual_norm,
+Runs a linear or nonlinear solver. Keyed by SolverKey with the following
+fields:
+
+- solver_type: e.g. "cg", "gmres", "block_pcg"
+- spd: whether the system is symmetric positive definite
+- complex: whether the system involves complex arithmetic
+- block_structure: "single_field" or "block2x2"
+
+Returns a SolveResult containing solution, residual_norm,
 and iterations.
 
 ### MethodRegistry
@@ -175,6 +203,8 @@ reusable verification for pack authors. It checks:
 9. Solver factories are registered (informational).
 10. No duplicate operator factory keys within the pack.
 11. No duplicate solver factory keys within the pack.
+12. Physics packs must not register single_field solver factories
+    (enforces separation between physics and solver algorithm concerns).
 
 Usage in tests:
 
@@ -223,7 +253,8 @@ The command form is spinoza-devtools solve <case.toml> --out <path.json> --backe
 Default backend is assembled.
 Default preconditioner is jacobi.
 
-The solve path supports Poisson problems in 2D and 3D, and coupled elliptic 2x2 systems.
+The solve path supports Poisson problems in 2D and 3D, coupled elliptic 2x2 systems,
+and linear elasticity problems in 2D (plane strain) and 3D.
 It accepts mesh dimension 2 or 3.
 The registry-based dispatch selects the first matching builder from discovered packs.
 
@@ -242,7 +273,7 @@ The solve JSON output contains deterministic keys.
 11. field_sizes
 12. selected_operator (nullable, present when resolved via registry)
 13. selected_preconditioner (nullable, present when resolved via registry)
-14. selected_solver (nullable, present when resolved via registry)
+14. selected_solver (the pack::component that solved the system)
 15. solution_vector
 16. residual_norm
 17. iteration_count

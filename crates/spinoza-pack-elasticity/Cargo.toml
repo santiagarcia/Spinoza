@@ -1,0 +1,16 @@
+[package]
+name = "spinoza-pack-elasticity"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+spinoza-core = { path = "../spinoza-core" }
+spinoza-disc = { path = "../spinoza-disc" }
+spinoza-solve = { path = "../spinoza-solve" }
+
+[dev-dependencies]
+spinoza-core = { path = "../spinoza-core" }
+spinoza-pack-poisson = { path = "../spinoza-pack-poisson" }
+spinoza-pack-block2x2 = { path = "../spinoza-pack-block2x2" }
+spinoza-pack-linear-solvers = { path = "../spinoza-pack-linear-solvers" }
+toml = "0.8"

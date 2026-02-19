@@ -32,6 +32,10 @@ pub enum Capability {
     SolverBlockPCG,
     /// Coupled elliptic 2x2 system.
     EquationCoupledElliptic2x2,
+    /// Linear elasticity stiffness operator.
+    OperatorElasticity,
+    /// GMRES linear solver.
+    SolverGMRES,
 }
 
 impl fmt::Display for Capability {
@@ -48,6 +52,8 @@ impl fmt::Display for Capability {
             Capability::PrecondBlockJacobi => "Precond_BlockJacobi",
             Capability::SolverBlockPCG => "Solver_BlockPCG",
             Capability::EquationCoupledElliptic2x2 => "Equation_CoupledElliptic2x2",
+            Capability::OperatorElasticity => "Operator_Elasticity",
+            Capability::SolverGMRES => "Solver_GMRES",
         };
         f.write_str(label)
     }

@@ -68,6 +68,7 @@ impl SolverFactory for BlockPcgSolverFactory {
             solver_type: "block_pcg".into(),
             spd: true,
             complex: false,
+            block_structure: "block2x2".into(),
         }]
     }
 

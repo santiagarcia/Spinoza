@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use serde::Serialize;
-use spinoza_core::{BuilderLookup, ComponentLookup, MethodRegistry, SolverKey, SpinozaError};
-use spinoza_solve::solve_cg;
+use spinoza_core::{BuilderLookup, ComponentLookup, MethodRegistry, SolverKey, SpinozaError,
+    infer_block_structure};
 
 use crate::audit::load_and_validate;
 
@@ -25,7 +25,7 @@ pub struct SolveOutput {
     pub field_sizes: Vec<usize>,
     pub selected_operator: Option<String>,
     pub selected_preconditioner: Option<String>,
-    pub selected_solver: Option<String>,
+    pub selected_solver: String,
     pub solution_vector: Vec<f64>,
     pub residual_norm: f64,
     pub iteration_count: usize,
@@ -76,6 +76,8 @@ pub fn solve_case_file(
     // The `use` statement alone is insufficient; we reference a symbol.
     let _ = spinoza_pack_poisson::PoissonPack;
     let _ = spinoza_pack_block2x2::Block2x2Pack;
+    let _ = spinoza_pack_elasticity::ElasticityPack;
+    let _ = spinoza_pack_linear_solvers::LinearSolversPack;
 
     let spec = load_and_validate(path)?;
     let dim = spec.mesh.dimension;
@@ -114,10 +116,13 @@ pub fn solve_case_file(
 
     // Try to find a solver factory from the registry; fall back to solve_cg.
     let solver_type = spec.solver.linear.as_str();
+    let block_str = infer_block_structure(&spec.equation.eq_type);
+    let is_spd = solver_type != "gmres";
     let solver_key = SolverKey {
         solver_type: solver_type.to_string(),
-        spd: true,
+        spd: is_spd,
         complex: false,
+        block_structure: block_str,
     };
 
     let (solution, residual_norm, iterations, selected_solver) =
@@ -138,23 +143,18 @@ pub fn solve_case_file(
                     res.solution,
                     res.residual_norm,
                     res.iterations,
-                    Some(format!(
+                    format!(
                         "{}::{}",
                         selection.pack_name, selection.component_name
-                    )),
+                    ),
                 )
             }
             ComponentLookup::NotFound => {
-                // Fallback: direct CG solve.
-                let res = solve_cg(
-                    built.operator.as_ref(),
-                    &built.rhs,
-                    1e-10,
-                    20_000,
-                    built.preconditioner.as_deref(),
-                )
-                .map_err(SpinozaError::ValidationError)?;
-                (res.solution, res.residual_norm, res.iterations, None)
+                return Err(SpinozaError::ValidationError(format!(
+                    "COMPONENT_NOT_FOUND: no solver factory registered for key ({}). \
+                     Ensure spinoza-pack-linear-solvers is linked.",
+                    solver_key
+                )));
             }
             ComponentLookup::Ambiguous(err) => {
                 return Err(SpinozaError::ValidationError(err.to_string()));

@@ -1,0 +1,16 @@
+[package]
+name = "spinoza-pack-linear-solvers"
+version.workspace = true
+edition.workspace = true
+description = "Solver algorithm pack for the Spinoza multiphysics framework. Registers CG and GMRES solver factories."
+
+[dependencies]
+spinoza-core = { path = "../spinoza-core" }
+spinoza-solve = { path = "../spinoza-solve" }
+
+[dev-dependencies]
+spinoza-core = { path = "../spinoza-core" }
+spinoza-pack-poisson = { path = "../spinoza-pack-poisson" }
+spinoza-pack-elasticity = { path = "../spinoza-pack-elasticity" }
+spinoza-pack-block2x2 = { path = "../spinoza-pack-block2x2" }
+toml = "0.8"

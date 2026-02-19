@@ -101,6 +101,8 @@ fn main() {
     // Anchor pack crates so the linker keeps them (enables inventory discovery).
     let _ = spinoza_pack_poisson::PoissonPack;
     let _ = spinoza_pack_block2x2::Block2x2Pack;
+    let _ = spinoza_pack_elasticity::ElasticityPack;
+    let _ = spinoza_pack_linear_solvers::LinearSolversPack;
 
     let cli = Cli::parse();
 
@@ -153,6 +155,22 @@ fn main() {
                 }
             }
             Err(e) => {
+                let err_msg = e.to_string();
+                let code = if err_msg.contains("COMPONENT_NOT_FOUND") {
+                    "COMPONENT_NOT_FOUND"
+                } else {
+                    "VALIDATION_ERROR"
+                };
+                let error_output = serde_json::json!({
+                    "exit_code": 2,
+                    "validation_errors": [
+                        { "code": code, "message": err_msg }
+                    ]
+                });
+                let payload = serde_json::to_string_pretty(&error_output)
+                    .expect("json serialization must succeed");
+                // Write error JSON to output file if possible.
+                let _ = std::fs::write(&out, &payload);
                 eprintln!("Error: {e}");
                 process::exit(2);
             }

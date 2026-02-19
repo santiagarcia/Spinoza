@@ -19,6 +19,8 @@ spinoza-solve = { path = "../spinoza-solve" }
 # Depend on method packs so inventory discovers them at link time.
 spinoza-pack-poisson = { path = "../spinoza-pack-poisson" }
 spinoza-pack-block2x2 = { path = "../spinoza-pack-block2x2" }
+spinoza-pack-elasticity = { path = "../spinoza-pack-elasticity" }
+spinoza-pack-linear-solvers = { path = "../spinoza-pack-linear-solvers" }
 clap = { version = "4", default-features = false, features = ["derive", "std"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

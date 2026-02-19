@@ -24,6 +24,10 @@ fn list_text_output_contains_pack_names() {
     let stdout = String::from_utf8(output.stdout).expect("stdout must be utf8");
     assert!(stdout.contains("poisson"), "should list the poisson pack");
     assert!(stdout.contains("block2x2"), "should list the block2x2 pack");
+    assert!(
+        stdout.contains("linear_solvers"),
+        "should list the linear_solvers pack"
+    );
     assert!(stdout.contains("Discovered packs:"), "should have header");
 }
 

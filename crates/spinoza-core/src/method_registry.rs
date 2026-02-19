@@ -25,6 +25,14 @@ pub struct OperatorKey {
     pub equation_family: String,
     pub backend: String,
     pub dimension: u8,
+    /// Function space signature, e.g. "H1Scalar", "H1Vector".
+    pub space_signature: String,
+    /// Element family, e.g. "quad" (2D), "hex" (3D).
+    pub element_family: String,
+    /// Polynomial order, e.g. 1 for Q1.
+    pub order: u8,
+    /// Block structure, e.g. "single_field" or "block2x2".
+    pub block_structure: String,
 }
 
 /// Key for preconditioner factory lookup.
@@ -33,6 +41,16 @@ pub struct PreconditionerKey {
     pub precond_type: String,
     pub backend: String,
     pub dimension: u8,
+    /// The operator family this preconditioner is designed for.
+    pub operator_family: String,
+    /// Function space signature.
+    pub space_signature: String,
+    /// Element family.
+    pub element_family: String,
+    /// Polynomial order.
+    pub order: u8,
+    /// Block structure.
+    pub block_structure: String,
 }
 
 /// Key for solver factory lookup.
@@ -41,14 +59,17 @@ pub struct SolverKey {
     pub solver_type: String,
     pub spd: bool,
     pub complex: bool,
+    /// Block structure, e.g. "single_field" or "block2x2".
+    pub block_structure: String,
 }
 
 impl fmt::Display for OperatorKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "equation_family='{}', backend='{}', dimension={}",
+            "equation_family='{}', backend='{}', dimension={}, space='{}', element='{}', order={}, block='{}'",
             self.equation_family, self.backend, self.dimension,
+            self.space_signature, self.element_family, self.order, self.block_structure,
         )
     }
 }
@@ -57,8 +78,9 @@ impl fmt::Display for PreconditionerKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "precond_type='{}', backend='{}', dimension={}",
+            "precond_type='{}', backend='{}', dimension={}, op_family='{}', space='{}', element='{}', order={}, block='{}'",
             self.precond_type, self.backend, self.dimension,
+            self.operator_family, self.space_signature, self.element_family, self.order, self.block_structure,
         )
     }
 }
@@ -67,8 +89,8 @@ impl fmt::Display for SolverKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "solver_type='{}', spd={}, complex={}",
-            self.solver_type, self.spd, self.complex,
+            "solver_type='{}', spd={}, complex={}, block='{}'",
+            self.solver_type, self.spd, self.complex, self.block_structure,
         )
     }
 }
@@ -720,7 +742,7 @@ impl MethodRegistry {
                     .factory
                     .supported_keys()
                     .iter()
-                    .map(|k| format!("({}, {}, {}d)", k.equation_family, k.backend, k.dimension))
+                    .map(|k| format!("({}, {}, {}d, {}, {}, o{}, {})", k.equation_family, k.backend, k.dimension, k.space_signature, k.element_family, k.order, k.block_structure))
                     .collect();
                 info.insert("keys".to_string(), keys.join(", "));
                 info
@@ -741,7 +763,7 @@ impl MethodRegistry {
                     .factory
                     .supported_keys()
                     .iter()
-                    .map(|k| format!("({}, {}, {}d)", k.precond_type, k.backend, k.dimension))
+                    .map(|k| format!("({}, {}, {}d, {}, {}, {}, o{}, {})", k.precond_type, k.backend, k.dimension, k.operator_family, k.space_signature, k.element_family, k.order, k.block_structure))
                     .collect();
                 info.insert("keys".to_string(), keys.join(", "));
                 info
@@ -762,7 +784,7 @@ impl MethodRegistry {
                     .factory
                     .supported_keys()
                     .iter()
-                    .map(|k| format!("({}, spd={}, complex={})", k.solver_type, k.spd, k.complex))
+                    .map(|k| format!("({}, spd={}, complex={}, {})", k.solver_type, k.spd, k.complex, k.block_structure))
                     .collect();
                 info.insert("keys".to_string(), keys.join(", "));
                 info

@@ -29,7 +29,8 @@ pub use operator::LinearOperator;
 pub use preconditioner::Preconditioner;
 pub use spec::CompiledPlan;
 pub use spec::{
-    BcSpec, CaseSpec, EquationSpec, FieldKind, FieldSpec, MeshSpec, ProblemSpec, SolverSpec, Space,
+    infer_block_structure, infer_element_family, infer_space_signature, BcSpec, CaseSpec,
+    EquationSpec, FieldKind, FieldSpec, MeshSpec, ProblemSpec, SolverSpec, Space,
 };
 
 // Re-export inventory so packs can use the macro without depending on it directly.
